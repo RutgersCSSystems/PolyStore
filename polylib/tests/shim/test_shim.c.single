@@ -1,0 +1,86 @@
+#define _GNU_SOURCE
+
+#include <unistd.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <string.h>
+#include <pthread.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#define FILE_SIZE 1048576UL
+//#define FILE_SIZE 16777216UL
+
+#define SMALL_IO_SIZE 256
+#define LARGE_IO_SIZE 8192
+
+pthread_t *small_io_threads = NULL;
+pthread_t *large_io_threads = NULL;
+
+int *small_io_threads_idx = NULL;
+int *large_io_threads_idx = NULL;
+
+int thread_nr = 16;
+
+void* small_io_thread(void* arg) {
+	char fname[PATH_MAX];
+	char buf[SMALL_IO_SIZE];
+	int fd = 0, i = 0;
+	int id = *(int*)arg;
+	int iter = FILE_SIZE / SMALL_IO_SIZE;
+
+	memset(buf, 'a', SMALL_IO_SIZE);
+	sprintf(fname, "/mnt/polystore/small%d.txt", id);
+
+	fd = open(fname, O_CREAT | O_RDWR, 0666);
+
+	for (i = 0; i < iter; ++i)
+		write(fd, buf, SMALL_IO_SIZE);
+
+	close(fd);
+
+	return NULL;
+}
+
+void* large_io_thread(void* arg) {
+	char fname[PATH_MAX];
+	char buf[LARGE_IO_SIZE];
+	int fd = 0, i = 0;
+	int id = *(int*)arg;
+	int iter = FILE_SIZE / LARGE_IO_SIZE;
+
+	memset(buf, 'a', LARGE_IO_SIZE);
+	sprintf(fname, "/mnt/polystore/large%d.txt", id);
+
+	fd = open(fname, O_CREAT | O_RDWR, 0666);
+
+	for (i = 0; i < iter; ++i)
+		write(fd, buf, LARGE_IO_SIZE);
+
+	close(fd);
+
+	return NULL;
+}
+
+int main(int argc, char** argv) {
+	int ret = 0, fd = 0;
+
+        char path[255] = "/mnt/polystore/test";
+        char buf[4096];
+
+        memset(buf, 0, 4096);
+
+        fd = open(path, O_CREAT | O_RDWR, 0666);
+        if (fd < 0) {
+                printf("open failed\n");
+        }
+
+        write(fd, buf, 4096);
+        
+        close(fd);
+
+	return 0;
+}
